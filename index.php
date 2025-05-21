@@ -103,7 +103,7 @@
     <?php
     // Configuración de conexión para Azure SQL Database
     $serverName = getenv('SQLSRV_SERVER') ?: "tcp:bdserversql.database.windows.net,1433";
-    $database = getenv('SQLSRV_DATABASE') ?: "bdsql";
+    $database = getenv('SQLSRV_DATABASE') ?: "bdsql01";
     $username = getenv('SQLSRV_USERNAME') ?: "adminsql";
     $password = getenv('SQLSRV_PASSWORD') ?: "Servid0r1";
 
