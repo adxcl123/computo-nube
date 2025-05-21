@@ -41,7 +41,7 @@
             box-sizing: border-box;
         }
         input[type="submit"] {
-            background-color:rgb(175, 76, 167);
+            background-color: rgb(175, 76, 167);
             color: white;
             padding: 12px 20px;
             border: none;
@@ -51,7 +51,19 @@
             width: 100%;
         }
         input[type="submit"]:hover {
-            background-color:rgb(160, 69, 160);
+            background-color: rgb(160, 69, 160);
+        }
+        .success-message {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f5e9;
+            border-left: 4px solid #4caf50;
+        }
+        .error-message {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #ffebee;
+            border-left: 4px solid #f44336;
         }
     </style>
 </head>
@@ -89,16 +101,67 @@
     </div>
 
     <?php
-    // Procesamiento del formulario (sin BD)
-    if (isset($_POST['enviar'])) {
-        echo "<div class='form-container' style='margin-top: 20px;'>";
-        echo "<h2>Datos Recibidos:</h2>";
-        echo "<p><strong>Nombre:</strong> " . htmlspecialchars($_POST['nombre']) . "</p>";
-        echo "<p><strong>Primer Apellido:</strong> " . htmlspecialchars($_POST['primer_apellido']) . "</p>";
-        echo "<p><strong>Segundo Apellido:</strong> " . htmlspecialchars($_POST['segundo_apellido']) . "</p>";
-        echo "<p><strong>Correo:</strong> " . htmlspecialchars($_POST['correo']) . "</p>";
-        echo "<p><strong>Teléfono:</strong> " . htmlspecialchars($_POST['telefono']) . "</p>";
+    // Configuración de conexión para Azure SQL Database
+    $serverName = getenv('SQLSRV_SERVER') ?: "tcp:bdserversql.database.windows.net,1433";
+    $database = getenv('SQLSRV_DATABASE') ?: "bdsql";
+    $username = getenv('SQLSRV_USERNAME') ?: "adminsql";
+    $password = getenv('SQLSRV_PASSWORD') ?: "Servid0r1";
+
+    try {
+        $conn = new PDO("sqlsrv:server=$serverName;Database=$database", $username, $password);
+        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ATTR_ERRMODE_EXCEPTION);
+        
+        // Crear tabla si no existe
+        $sql = "IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='usuarios' AND xtype='U')
+                CREATE TABLE usuarios (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    nombre NVARCHAR(50) NOT NULL,
+                    primer_apellido NVARCHAR(50) NOT NULL,
+                    segundo_apellido NVARCHAR(50),
+                    correo NVARCHAR(100) NOT NULL,
+                    telefono NVARCHAR(20) NOT NULL,
+                    fecha_registro DATETIME DEFAULT GETDATE()
+                )";
+        $conn->exec($sql);
+        
+    } catch (PDOException $e) {
+        echo "<div class='error-message'>";
+        echo "<h3>Error de conexión a la base de datos:</h3>";
+        echo "<p>" . htmlspecialchars($e->getMessage()) . "</p>";
         echo "</div>";
+    }
+
+    // Procesamiento del formulario
+    if (isset($_POST['enviar'])) {
+        try {
+            // Insertar datos en la base de datos
+            $stmt = $conn->prepare("INSERT INTO usuarios (nombre, primer_apellido, segundo_apellido, correo, telefono) 
+                                   VALUES (:nombre, :primer_apellido, :segundo_apellido, :correo, :telefono)");
+            
+            $stmt->bindParam(':nombre', $_POST['nombre']);
+            $stmt->bindParam(':primer_apellido', $_POST['primer_apellido']);
+            $stmt->bindParam(':segundo_apellido', $_POST['segundo_apellido']);
+            $stmt->bindParam(':correo', $_POST['correo']);
+            $stmt->bindParam(':telefono', $_POST['telefono']);
+            
+            $stmt->execute();
+            
+            // Mostrar mensaje de éxito
+            echo "<div class='success-message'>";
+            echo "<h3>Datos Guardados Correctamente:</h3>";
+            echo "<p><strong>Nombre:</strong> " . htmlspecialchars($_POST['nombre']) . "</p>";
+            echo "<p><strong>Primer Apellido:</strong> " . htmlspecialchars($_POST['primer_apellido']) . "</p>";
+            echo "<p><strong>Segundo Apellido:</strong> " . htmlspecialchars($_POST['segundo_apellido']) . "</p>";
+            echo "<p><strong>Correo:</strong> " . htmlspecialchars($_POST['correo']) . "</p>";
+            echo "<p><strong>Teléfono:</strong> " . htmlspecialchars($_POST['telefono']) . "</p>";
+            echo "</div>";
+            
+        } catch(PDOException $e) {
+            echo "<div class='error-message'>";
+            echo "<h3>Error al guardar los datos:</h3>";
+            echo "<p>" . htmlspecialchars($e->getMessage()) . "</p>";
+            echo "</div>";
+        }
     }
     ?>
 </body>
