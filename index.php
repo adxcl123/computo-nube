@@ -114,103 +114,77 @@
         </form>
 
         <?php
-        // Configuración de conexión para Azure SQL Database
-        $serverName = getenv('SQLSRV_SERVER') ?: "bdserversql.database.windows.net";
-        $database = getenv('SQLSRV_DATABASE') ?: "bdsql01";
-        $username = getenv('SQLSRV_USERNAME') ?: "adminsql";
-        $password = getenv('SQLSRV_PASSWORD') ?: "Servid0r1";
+        // Verificar si el formulario ha sido enviado
+        if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['enviar'])) {
+            // Recoger y sanitizar los datos del formulario
+            $nombre = trim($_POST['nombre']);
+            $primer_apellido = trim($_POST['primer_apellido']);
+            $segundo_apellido = trim($_POST['segundo_apellido'] ?? ''); // Usamos el operador null coalescente por si no está definido
+            $correo = trim($_POST['correo']);
+            $telefono = trim($_POST['telefono']);
 
-        $dbConnected = false;
-        $dbError = "";
-        $lastInsertId = null;
+            // Validaciones básicas
+            $errores = [];
+            if (empty($nombre)) $errores[] = "El nombre es obligatorio";
+            if (empty($primer_apellido)) $errores[] = "El primer apellido es obligatorio";
+            if (empty($correo)) {
+                $errores[] = "El correo electrónico es obligatorio";
+            } elseif (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+                $errores[] = "El formato del correo electrónico no es válido";
+            }
+            if (empty($telefono)) $errores[] = "El teléfono es obligatorio";
 
-        try {
-            $conn = new PDO("sqlsrv:server=$serverName;Database=$database", $username, $password);
-            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ATTR_ERRMODE_EXCEPTION);
-            $dbConnected = true;
-            
-            // Crear tabla si no existe
-            $sql = "IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='usuarios' AND xtype='U')
-                    CREATE TABLE usuarios (
-                        id INT IDENTITY(1,1) PRIMARY KEY,
-                        nombre NVARCHAR(50) NOT NULL,
-                        primer_apellido NVARCHAR(50) NOT NULL,
-                        segundo_apellido NVARCHAR(50),
-                        correo NVARCHAR(100) NOT NULL,
-                        telefono NVARCHAR(20) NOT NULL,
-                        fecha_registro DATETIME DEFAULT GETDATE()
-                    )";
-            $conn->exec($sql);
-            
-        } catch (PDOException $e) {
-            $dbError = $e->getMessage();
-            echo "<div class='error-message'>";
-            echo "<h3>Error de conexión a la base de datos:</h3>";
-            echo "<p>" . htmlspecialchars($dbError) . "</p>";
-            echo "</div>";
-        }
-
-        // Procesamiento del formulario
-        if (isset($_POST['enviar'])) {
-            if ($dbConnected) {
+            // Si no hay errores, procedemos con la conexión a la base de datos
+            if (empty($errores)) {
                 try {
-                    // Insertar datos en la base de datos
-                    $stmt = $conn->prepare("INSERT INTO usuarios (nombre, primer_apellido, segundo_apellido, correo, telefono) 
-                                           VALUES (:nombre, :primer_apellido, :segundo_apellido, :correo, :telefono)");
+                    // Configuración de la conexión PDO para Azure SQL
+                    $serverName = "tcp:bdserversql.database.windows.net,1433";
+                    $database = "bdsql01";
+                    $username = "adminsql";
+                    $password = "{your_password_here}";
                     
-                    $stmt->bindParam(':nombre', $_POST['nombre']);
-                    $stmt->bindParam(':primer_apellido', $_POST['primer_apellido']);
-                    $stmt->bindParam(':segundo_apellido', $_POST['segundo_apellido']);
-                    $stmt->bindParam(':correo', $_POST['correo']);
-                    $stmt->bindParam(':telefono', $_POST['telefono']);
+                    $conn = new PDO("sqlsrv:server=$serverName;Database=$database", $username, $password);
+                    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                     
+                    // Preparar la consulta SQL
+                    $sql = "INSERT INTO usuarios (nombre, primer_apellido, segundo_apellido, correo, telefono, fecha_registro) 
+                            VALUES (:nombre, :primer_apellido, :segundo_apellido, :correo, :telefono, GETDATE())";
+                    
+                    $stmt = $conn->prepare($sql);
+                    
+                    // Bind parameters
+                    $stmt->bindParam(':nombre', $nombre);
+                    $stmt->bindParam(':primer_apellido', $primer_apellido);
+                    $stmt->bindParam(':segundo_apellido', $segundo_apellido);
+                    $stmt->bindParam(':correo', $correo);
+                    $stmt->bindParam(':telefono', $telefono);
+                    
+                    // Ejecutar la consulta
                     $stmt->execute();
-                    $lastInsertId = $conn->lastInsertId();
                     
-                    // Mostrar mensaje de éxito
-                    echo "<div class='success-message'>";
-                    echo "<h3>Datos Guardados Correctamente:</h3>";
-                    echo "<p><strong>Nombre:</strong> " . htmlspecialchars($_POST['nombre']) . "</p>";
-                    echo "<p><strong>Primer Apellido:</strong> " . htmlspecialchars($_POST['primer_apellido']) . "</p>";
-                    echo "<p><strong>Segundo Apellido:</strong> " . htmlspecialchars($_POST['segundo_apellido']) . "</p>";
-                    echo "<p><strong>Correo:</strong> " . htmlspecialchars($_POST['correo']) . "</p>";
-                    echo "<p><strong>Teléfono:</strong> " . htmlspecialchars($_POST['telefono']) . "</p>";
-                    echo "</div>";
+                    // Mensaje de éxito
+                    echo '<div class="success-message">Registro completado con éxito!</div>';
+                    echo '<div class="db-status success">Conexión a la base de datos establecida correctamente.</div>';
                     
-                    // Estado de la base de datos
-                    echo "<div class='db-status success'>";
-                    echo "<h3>Estado de la Base de Datos:</h3>";
-                    echo "<p>✅ Los datos se guardaron correctamente en la base de datos.</p>";
-                    echo "<p><strong>ID del registro:</strong> " . htmlspecialchars($lastInsertId) . "</p>";
-                    echo "</div>";
-                    
-                } catch(PDOException $e) {
-                    echo "<div class='error-message'>";
-                    echo "<h3>Error al guardar los datos:</h3>";
-                    echo "<p>" . htmlspecialchars($e->getMessage()) . "</p>";
-                    echo "</div>";
-                    
-                    echo "<div class='db-status error'>";
-                    echo "<h3>Estado de la Base de Datos:</h3>";
-                    echo "<p>❌ Error al guardar en la base de datos: " . htmlspecialchars($e->getMessage()) . "</p>";
-                    echo "</div>";
+                } catch (PDOException $e) {
+                    // Manejo de errores
+                    echo '<div class="error-message">Error al registrar los datos: ' . $e->getMessage() . '</div>';
+                    echo '<div class="db-status error">Error al conectar con la base de datos: ' . $e->getMessage() . '</div>';
+                } finally {
+                    // Cerrar conexión
+                    $conn = null;
                 }
             } else {
-                echo "<div class='db-status error'>";
-                echo "<h3>Estado de la Base de Datos:</h3>";
-                echo "<p>❌ No se pudo conectar a la base de datos: " . htmlspecialchars($dbError) . "</p>";
-                echo "</div>";
+                // Mostrar errores de validación
+                echo '<div class="error-message"><ul>';
+                foreach ($errores as $error) {
+                    echo '<li>' . htmlspecialchars($error) . '</li>';
+                }
+                echo '</ul></div>';
             }
         }
-        
-        // Mostrar estado de conexión si no se ha enviado el formulario
-        if (!isset($_POST['enviar']) && $dbConnected) {
-            echo "<div class='db-status'>";
-            echo "<h3>Estado de la Base de Datos:</h3>";
-            echo "<p>🟢 Conectado correctamente a la base de datos</p>";
-            echo "</div>";
-        }
         ?>
+        
     </div>
 </body>
 </html>
