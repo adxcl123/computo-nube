@@ -12,7 +12,7 @@
         }
         .form-container {
             background-color: #fff;
-            max-width: 500px;
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             border-radius: 8px;
@@ -79,6 +79,30 @@
             background-color: #ffebee;
             border-left-color: #f44336;
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .registros-title {
+            margin-top: 40px;
+            color: #333;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -119,7 +143,7 @@
             // Recoger y sanitizar los datos del formulario
             $nombre = trim($_POST['nombre']);
             $primer_apellido = trim($_POST['primer_apellido']);
-            $segundo_apellido = trim($_POST['segundo_apellido'] ?? ''); // Usamos el operador null coalescente por si no está definido
+            $segundo_apellido = trim($_POST['segundo_apellido'] ?? '');
             $correo = trim($_POST['correo']);
             $telefono = trim($_POST['telefono']);
 
@@ -146,7 +170,7 @@
                     $conn = new PDO("sqlsrv:server=$serverName;Database=$database", $username, $password);
                     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                     
-                    // Preparar la consulta SQL
+                    // Preparar la consulta SQL para insertar
                     $sql = "INSERT INTO usuarios (nombre, primer_apellido, segundo_apellido, correo, telefono, fecha_registro) 
                             VALUES (:nombre, :primer_apellido, :segundo_apellido, :correo, :telefono, GETDATE())";
                     
@@ -182,6 +206,58 @@
                 }
                 echo '</ul></div>';
             }
+        }
+
+        // Mostrar los registros existentes
+        try {
+            $serverName = "bdserversql.database.windows.net";
+            $database = "bdsql01";
+            $username = "adminsql";
+            $password = "Servid0r1";
+            
+            $conn = new PDO("sqlsrv:server=$serverName;Database=$database", $username, $password);
+            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            
+            // Consulta para obtener todos los registros
+            $sql = "SELECT id, nombre, primer_apellido, segundo_apellido, correo, telefono, 
+                    CONVERT(VARCHAR, fecha_registro, 120) as fecha_registro 
+                    FROM usuarios ORDER BY fecha_registro DESC";
+            
+            $stmt = $conn->query($sql);
+            $registros = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (count($registros) > 0) {
+                echo '<h2 class="registros-title">Registros Existentes</h2>';
+                echo '<table>';
+                echo '<tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Primer Apellido</th>
+                        <th>Segundo Apellido</th>
+                        <th>Correo</th>
+                        <th>Teléfono</th>
+                        <th>Fecha Registro</th>
+                      </tr>';
+                
+                foreach ($registros as $registro) {
+                    echo '<tr>';
+                    echo '<td>' . htmlspecialchars($registro['id']) . '</td>';
+                    echo '<td>' . htmlspecialchars($registro['nombre']) . '</td>';
+                    echo '<td>' . htmlspecialchars($registro['primer_apellido']) . '</td>';
+                    echo '<td>' . htmlspecialchars($registro['segundo_apellido']) . '</td>';
+                    echo '<td>' . htmlspecialchars($registro['correo']) . '</td>';
+                    echo '<td>' . htmlspecialchars($registro['telefono']) . '</td>';
+                    echo '<td>' . htmlspecialchars($registro['fecha_registro']) . '</td>';
+                    echo '</tr>';
+                }
+                
+                echo '</table>';
+            } else {
+                echo '<div class="db-status">No hay registros existentes en la base de datos.</div>';
+            }
+            
+        } catch (PDOException $e) {
+            echo '<div class="db-status error">Error al obtener registros: ' . $e->getMessage() . '</div>';
         }
         ?>
         
