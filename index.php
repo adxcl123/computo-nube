@@ -138,7 +138,7 @@
             if (empty($errores)) {
                 try {
                     // Configuración de la conexión PDO para Azure SQL
-                    $serverName = "20.10.1.4";
+                    $serverName = "tcp:bdserversql.database.windows.net,1433";
                     $database = "bdsql01";
                     $username = "adminsql";
                     $password = "Servid0r1";
