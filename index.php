@@ -161,15 +161,21 @@
             // Si no hay errores, seguimos con la conexión a la base de datos
             if (empty($errores)) {
                 try {
-                    // Configuración de la conexión PDO para Azure SQL
-                    $serverName = " tcp:bdserversql.database.windows.net,1433";
-                    $database = "bdsql01";
-                    $username = "adminsql";
-                    $password = "Servid0r1";
-                    
-                    $conn = new PDO("sqlsrv:server=$serverName;Database=$database", $username, $password);
-                    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                    
+                        $serverName = "bdserversql.database.windows.net";
+                        $database = "bdsql01";
+                        $username = "adminsql";
+                        $password = "Servid0r1";
+                        
+                        $conn = new PDO(
+                            "sqlsrv:server=$serverName;Database=$database;Encrypt=yes;TrustServerCertificate=no;LoginTimeout=30",
+                            $username,
+                            $password,
+                            [
+                                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                                PDO::ATTR_TIMEOUT => 30,
+                                PDO::SQLSRV_ATTR_QUERY_TIMEOUT => 25
+                            ]
+                        );
                     // Preparar la consulta SQL para insertar
                     $sql = "INSERT INTO usuarios (nombre, primer_apellido, segundo_apellido, correo, telefono, fecha_registro) 
                             VALUES (:nombre, :primer_apellido, :segundo_apellido, :correo, :telefono, GETDATE())";
