@@ -158,7 +158,7 @@
             }
             if (empty($telefono)) $errores[] = "El teléfono es obligatorio";
 
-            // Si no hay errores, procedemos con la conexión a la base de datos
+            // Si no hay errores, seguimos con la conexión a la base de datos
             if (empty($errores)) {
                 try {
                     // Configuración de la conexión PDO para Azure SQL
