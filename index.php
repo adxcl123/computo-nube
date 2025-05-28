@@ -147,7 +147,7 @@
             $correo = trim($_POST['correo']);
             $telefono = trim($_POST['telefono']);
 
-            // Validaciones básicas
+            // Validaciones
             $errores = [];
             if (empty($nombre)) $errores[] = "El nombre es obligatorio";
             if (empty($primer_apellido)) $errores[] = "El primer apellido es obligatorio";
@@ -162,7 +162,7 @@
             if (empty($errores)) {
                 try {
                     // Configuración de la conexión PDO para Azure SQL
-                    $serverName = "tcp:bdserversql.database.windows.net,1433;";
+                    $serverName = "bdserversql.database.windows.net";
                     $database = "bdsql01";
                     $username = "adminsql";
                     $password = "Servid0r1";
