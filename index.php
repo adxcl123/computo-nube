@@ -210,10 +210,11 @@
 
         // Mostrar los registros existentes
         try {
-            $serverName = "bdserversql01.privatelink.database.windows.net.";
-            $database = "bdsql01";
-            $username = "adminsql";
-            $password = "Servid0r1";
+                // Configuración de la conexión PDO para Azure SQL
+                $serverName = "bdserversql01.privatelink.database.windows.net";
+                $database = "bdsql01";
+                $username = "adminsql";
+                $password = "Servid0r1";
             
             $conn = new PDO("sqlsrv:server=$serverName;Database=$database", $username, $password);
             $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
